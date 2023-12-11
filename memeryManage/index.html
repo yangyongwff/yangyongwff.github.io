@@ -1,0 +1,335 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>MySQL缓冲池的管理机制 | 一叶落而知天下秋</title><meta name="author" content="YangYong"><meta name="copyright" content="YangYong"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="初识内存管理因为Mysql的数据存储在磁盘，磁盘的读写速率远低于内存，但是我们执行一条SQL语句，其执行速率一般非常快，远高于磁盘的读写速率。这就不得不提今天要讲的主角-缓冲池（Buffer Pool), 简单来讲缓冲池就是内存的一块区域，主要用来高速缓冲数据和索引，正是因为缓冲池的引入，避免了磁盘的检索，才提高了SQL语句的执行速率。 何为Buffer PoolMySQL执行的SQL语句需要对数">
+<meta property="og:type" content="article">
+<meta property="og:title" content="MySQL缓冲池的管理机制">
+<meta property="og:url" content="https://yangshaobei.com/memeryManage/index.html">
+<meta property="og:site_name" content="一叶落而知天下秋">
+<meta property="og:description" content="初识内存管理因为Mysql的数据存储在磁盘，磁盘的读写速率远低于内存，但是我们执行一条SQL语句，其执行速率一般非常快，远高于磁盘的读写速率。这就不得不提今天要讲的主角-缓冲池（Buffer Pool), 简单来讲缓冲池就是内存的一块区域，主要用来高速缓冲数据和索引，正是因为缓冲池的引入，避免了磁盘的检索，才提高了SQL语句的执行速率。 何为Buffer PoolMySQL执行的SQL语句需要对数">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://s2.loli.net/2023/11/03/rth6zKLAEqsBUMa.jpg">
+<meta property="article:published_time" content="2023-12-10T14:30:55.227Z">
+<meta property="article:modified_time" content="2023-12-10T14:54:16.498Z">
+<meta property="article:author" content="YangYong">
+<meta property="article:tag" content="MySQL">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://s2.loli.net/2023/11/03/rth6zKLAEqsBUMa.jpg"><link rel="shortcut icon" href="/img/logo.png"><link rel="canonical" href="https://yangshaobei.com/memeryManage/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css" media="print" onload="this.media='all'"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox/fancybox.min.css" media="print" onload="this.media='all'"><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: undefined,
+  translate: undefined,
+  noticeOutdate: undefined,
+  highlight: {"plugin":"highlighjs","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false},
+  copy: {
+    success: '复制成功',
+    error: '复制错误',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'fancybox',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyload: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'MySQL缓冲池的管理机制',
+  isPost: true,
+  isHome: false,
+  isHighlightShrink: false,
+  isToc: true,
+  postUpdate: '2023-12-10 22:54:16'
+}</script><script>(win=>{
+      win.saveToLocal = {
+        set: (key, value, ttl) => {
+          if (ttl === 0) return
+          const now = Date.now()
+          const expiry = now + ttl * 86400000
+          const item = {
+            value,
+            expiry
+          }
+          localStorage.setItem(key, JSON.stringify(item))
+        },
+      
+        get: key => {
+          const itemStr = localStorage.getItem(key)
+      
+          if (!itemStr) {
+            return undefined
+          }
+          const item = JSON.parse(itemStr)
+          const now = Date.now()
+      
+          if (now > item.expiry) {
+            localStorage.removeItem(key)
+            return undefined
+          }
+          return item.value
+        }
+      }
+    
+      win.getScript = (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        script.onerror = reject
+        script.onload = script.onreadystatechange = function() {
+          const loadState = this.readyState
+          if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+          script.onload = script.onreadystatechange = null
+          resolve()
+        }
+
+        Object.keys(attr).forEach(key => {
+          script.setAttribute(key, attr[key])
+        })
+
+        document.head.appendChild(script)
+      })
+    
+      win.getCSS = (url, id = false) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onerror = reject
+        link.onload = link.onreadystatechange = function() {
+          const loadState = this.readyState
+          if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+          link.onload = link.onreadystatechange = null
+          resolve()
+        }
+        document.head.appendChild(link)
+      })
+    
+      win.activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      win.activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+      const t = saveToLocal.get('theme')
+    
+        if (t === 'dark') activateDarkMode()
+        else if (t === 'light') activateLightMode()
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        if (asideStatus === 'hide') {
+          document.documentElement.classList.add('hide-aside')
+        } else {
+          document.documentElement.classList.remove('hide-aside')
+        }
+      }
+    
+      const detectApple = () => {
+        if(/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)){
+          document.documentElement.classList.add('apple')
+        }
+      }
+      detectApple()
+    })(window)</script><link rel="stylesheet" href="APlayer.min.css"><div id="aplayer"></div><!--script(src="https://cdn.jsdelivr.net/gh/radium-bit/res@master/live2d/autoload.js" async)--><script src="https://cdn.jsdelivr.net/npm/meting@2/dist/Meting.min.js" async></script><meta name="generator" content="Hexo 7.0.0"></head><body><script>window.paceOptions = {
+  restartOnPushState: false
+}
+
+document.addEventListener('pjax:send', () => {
+  Pace.restart()
+})
+</script><link rel="stylesheet" href="/css/corner-indicator.css"/><script src="https://cdn.jsdelivr.net/npm/pace-js/pace.min.js"></script><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img is-center"><img src="https://s2.loli.net/2023/11/03/rth6zKLAEqsBUMa.jpg" onerror="onerror=null;src='/img/friend_404.gif'" alt="avatar"/></div><div class="sidebar-site-data site-data is-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">3</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">1</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">0</div></a></div><hr class="custom-hr"/><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page group" href="javascript:void(0);"><i class="fa-fw fas fa-list"></i><span> 列表</span><i class="fas fa-chevron-down"></i></a><ul class="menus_item_child"><li><a class="site-page child" href="/music/"><i class="fa-fw fas fa-music"></i><span> 音乐</span></a></li><li><a class="site-page child" href="/movies/"><i class="fa-fw fas fa-video"></i><span> 电影</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/comments/"><i class="fa-fw fas fa-envelope-open"></i><span> 留言板</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header"><nav id="nav"><span id="blog-info"><a href="/" title="一叶落而知天下秋"><img class="site-icon" src="https://s2.loli.net/2023/11/03/Vks4hDy65wOURJn.png"/><span class="site-name">一叶落而知天下秋</span></a></span><div id="menus"><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page group" href="javascript:void(0);"><i class="fa-fw fas fa-list"></i><span> 列表</span><i class="fas fa-chevron-down"></i></a><ul class="menus_item_child"><li><a class="site-page child" href="/music/"><i class="fa-fw fas fa-music"></i><span> 音乐</span></a></li><li><a class="site-page child" href="/movies/"><i class="fa-fw fas fa-video"></i><span> 电影</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/comments/"><i class="fa-fw fas fa-envelope-open"></i><span> 留言板</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div><div id="toggle-menu"><a class="site-page" href="javascript:void(0);"><i class="fas fa-bars fa-fw"></i></a></div></div></nav><div id="post-info"><h1 class="post-title">MySQL缓冲池的管理机制</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2023-12-10T14:30:55.227Z" title="发表于 2023-12-10 22:30:55">2023-12-10</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2023-12-10T14:54:16.498Z" title="更新于 2023-12-10 22:54:16">2023-12-10</time></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title="MySQL缓冲池的管理机制"><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">阅读量:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="post-content" id="article-container"><h4 id="初识内存管理"><a href="#初识内存管理" class="headerlink" title="初识内存管理"></a>初识内存管理</h4><p>因为Mysql的数据存储在磁盘，磁盘的读写速率远低于内存，但是我们执行一条SQL语句，其执行速率一般非常快，远高于磁盘的读写速率。这就不得不提今天要讲的主角-缓冲池（Buffer Pool), 简单来讲缓冲池就是内存的一块区域，主要用来高速缓冲数据和索引，正是因为缓冲池的引入，避免了磁盘的检索，才提高了SQL语句的执行速率。</p>
+<h4 id="何为Buffer-Pool"><a href="#何为Buffer-Pool" class="headerlink" title="何为Buffer Pool"></a>何为Buffer Pool</h4><p>MySQL执行的SQL语句需要对数据进行增删改查，其都是在内存中进行的，即在Buffer Pool中。</p>
+<p>MySQL在启动之初，会对缓冲区进行初始化，这时期的缓冲区都是空闲页，也就是未使用的内存。随着MySQL Server不断地运行，会将磁盘中的数据页逐渐的加载到内存，磁盘中磁盘页和缓冲池中的数据页的大小都是16KB。因此，一次磁盘IO，会将读取的数据放入到内存的数据页中进行存储，其过程如下：</p>
+<img src="https://p.ipic.vip/3dtifj.png" alt="image-20231209212633429" style="zoom:50%;" />
+
+<p>当磁盘的数据被加载到内存后，对读写数据的影响：</p>
+<ul>
+<li>当读取数据时，如果数据存在于 Buffer Pool 中，客户端就会直接读取 Buffer Pool 中的数据，否则就会将磁盘页中的数据加载到缓冲区，然后再从缓冲区进行读取。</li>
+<li>写数据时：如果数据存在于 Buffer Pool 中，那直接修改 Buffer Pool 中数据所在的页，然后将其页设置为脏页（该页的内存数据和磁盘上的数据已经不一致），为了减少磁盘I&#x2F;O，不会立即将脏页写入磁盘，而是后台线程按照一定的频率进行刷新，缓冲池会采用一种叫做checkpoint的机制将脏页数据回写到磁盘上，这样做的好处就是提升了数据库的整体性能。</li>
+</ul>
+<p>到这里应该就可以解释为什么磁盘的读写速率很慢，但是执行一条SQL语句的速度非常快了，总结一下就是：</p>
+<blockquote>
+<p>因为缓冲池的存在，极大的减少了磁盘IO的开销，否则一切性能则无从谈起。</p>
+</blockquote>
+<p>当然上面磁盘的数据加载到内存过程表面看起来非常合理，但是设想一下，假设每次执行SQL的时候，数据都不在缓冲区，那么就需要每次都先从磁盘页进行读取，磁盘I&#x2F;O次数过多，这当然是一件非常糟糕的事情，要知道MySQL的设计者当然已经为我们考虑到了这些问题，那么MySQL是如何做的呢？那么缓冲池的预读机制呼之欲出 ↩️</p>
+<h4 id="缓冲池的预读机制"><a href="#缓冲池的预读机制" class="headerlink" title="缓冲池的预读机制"></a>缓冲池的预读机制</h4><p>MySQL利用两种机制来保障预读</p>
+<ul>
+<li>MySQL的局部性原理机制</li>
+</ul>
+<blockquote>
+<p>通常意义来讲，当存储引擎进行磁盘I&#x2F;O，需要读取某一页的数据，那么往往其附近区域的磁盘页也有可能被读取，主要原因是磁盘在写入数据时，都会将数据保存在一块连续的存储空间，因此不难理解MySQL在读取数据时，默认会使用局部性思想预读数据，通俗点讲就是磁盘I&#x2F;O读取数据时，默认将其附近的一整页也就是16KB的数据全部加载至内存</p>
+</blockquote>
+<ul>
+<li><p>存储引擎InnoDB的预读机制</p>
+<p>预读的大致流程图：</p>
+<img src="https://p.ipic.vip/ezgqs3.png" alt="image-20231209213006691" style="zoom:50%;" />
+
+<blockquote>
+<p>MySQL进行读请求时，Server层将请求交给引擎层进行处理，而引擎层间接依赖于文件系统统的I&#x2F;O读取机制</p>
+<p>大致的步骤为：</p>
+<ol>
+<li>为了保证请求数据的顺序性，所有的请求会会先放到请求队列中</li>
+<li>数据准备完毕后，数据会被放到响应队列中</li>
+<li>最终由MySQL的异步线程将响应队列中的数据进行读取，完成一次读取过程</li>
+<li>异步线程不断地处理请求队列，当然，存储引擎非常聪明，会根据队列中的请求进行一系列判断，比如后面几个读请求的数据是否相邻，再根据自身的系统的I&#x2F;O带宽进行预读，进行读请求的合并处理，一次性预读多页数据放在响应队列中，等待数据库读取</li>
+</ol>
+</blockquote>
+</li>
+</ul>
+<p>注意上面提到的进行读请求的合并处理，会一次性预读多页数据，那么究竟预读几页，什么情况下才会预读是我们需要考虑的问题，MySQL总共有两种策略：</p>
+<blockquote>
+<p>注：extent（区，大小为64个数据页，每个数据页16KB，总共就是64 * 16 KB &#x3D; 1024KB）默认为1M，关于MySQL的表结构存储，如段，页，区，表空间这些概念，之后会专门写一篇博客来谈论</p>
+</blockquote>
+<ol>
+<li>线性预读：当前extent中的数据页读取达到一定数量时（通过innodb_read_ahead_threshold设置），触发预读直接读取下一个extent，显然，线性预读的单位是extent</li>
+<li>随机预读：当前extent中的数据页达到一定数量时，触发预读同时会将剩余的数据页全部读入响应队列，显然，随机预读的单位是page</li>
+</ol>
+<p>上面就是MySQL的预读机制，总结一下就是：</p>
+<blockquote>
+<p>当MySQL服务端收到SELECT请求时，当一个extent的数据页读取达到一定数量时，InnoDB的预读机制会被触发，根据线性预读后者随机预读策略选择将下一个extent或者剩余的数据页全部读取到响应队列</p>
+</blockquote>
+<h4 id="缓冲池的预读机制失效问题"><a href="#缓冲池的预读机制失效问题" class="headerlink" title="缓冲池的预读机制失效问题"></a>缓冲池的预读机制失效问题</h4><p>到这里其实也就解决了我们前面提到的如何降低磁盘I&#x2F;O次数的问题，减少了I&#x2F;O次数，并且因为预读机制的存在，后续的数据可以直接从内存中读取，提升了查询效率。当然，任何事情并不总是完美无瑕的，如果MySQL利用局部性原理或者InnoDB的预读机制提前加载的数据，在很长的一段时间内并没有被使用，那么缺点也是显而易见的，造成了MySQL内存资源的浪费和额外的I&#x2F;O开销，这也就是常见的预读失效问题。</p>
+<h4 id="缓冲池的污染问题"><a href="#缓冲池的污染问题" class="headerlink" title="缓冲池的污染问题"></a>缓冲池的污染问题</h4><p>由于缓冲池加载大量的数据页，导致大量的旧的热数据页被置换掉，MySQL的性能急剧下降，称为缓冲池污染</p>
+<p>要解决预读机制失效问题和缓冲池污染问题就必须要对缓冲池中的数据页采用更为先进的管理策， 那么接下来要讲的一个问题是如何对缓冲池中加载的数据页进行管理。↩️</p>
+<h4 id="Buffer-Pool如何对加载的数据页进行管理？"><a href="#Buffer-Pool如何对加载的数据页进行管理？" class="headerlink" title="Buffer Pool如何对加载的数据页进行管理？"></a>Buffer Pool如何对加载的数据页进行管理？</h4><p>当然，对缓冲池中的数据页进行管理是亟需的工作，因为随着数据页不断地加载到缓冲池，缓冲池内存使用量不断地增加。如果不加以限制，最终内存耗尽，造成内存溢出等灾难性后果。那么就需要设计一种安全策略对缓冲池的数据进行淘汰，最容易想到的就是LRU算法。LRU（Least recently used）就是被广泛的应用在memcache、redis、guava Cache、OS等进行页面置换和回收的经典算法。</p>
+<ul>
+<li>如果传统的LRU算法如何进行缓冲页管理？</li>
+</ul>
+<p>大家很容易想到，按照末尾淘汰机制去管理数据页，LRU的数据结构采用双向链表，维护指向前后节点的指针。下面针对以下两种情况简单进行说明：</p>
+<ol>
+<li>数据页在缓冲区的LRU链表中</li>
+<li>数据页不在缓冲区的LRU链表中</li>
+</ol>
+<p>假设缓冲区的LRU长度为10，缓冲了数据页编号为1,3,5…的页，如下图所示</p>
+<img src="https://p.ipic.vip/l6m0bt.png" alt="image-20231209214215293" style="zoom:67%;" />
+
+<p>针对情况1，假设现在需要访问的数据在数据页9，那么LRU算法会修改链表的指针引用，将当前访问的数据页移动到链表头部，此时无数据页淘汰，如下图所示</p>
+<img src="https://p.ipic.vip/a3a7ky.png" alt="image-20231209214246512" style="zoom:67%;" />
+
+<p>针对情况2，假设现在需要访问的数据在数据页40，那么LRU算法会修改链表的指针引用，仍然将当前访问的数据页指向链表头部，此时尾部的数据页被淘汰，如下图所示</p>
+<img src="https://p.ipic.vip/010jui.png" alt="image-20231209214324157" style="zoom:60%;" />
+
+<p>上面的LRU算法表面看上去是可行的，如果是对于比较简单的场景可能没有问题，但是请思考下面的场景：</p>
+<p>场景1：之前我们提到的缓冲池的预读机制，如果是随机预读机制，会把相邻的数据页同时加载到内存中。如果此时MySQL需要访问的数据位于数据页34，并假设触发了预读机制，需要同时加载了34,35两个相邻的数据页，如果采用了上面的LRU算法，则很容易知道LRU会将初始状态下位于末尾的70和8的数据页进行淘汰。我们可能面临的比较糟糕的情况是，缓冲池预读机制可能成为未来的累赘，因为可能预读的数据在后续的访问中，并不是我们所需要访问的，而我们付出的代价不仅有加载了无用的数据页，而且淘汰了末尾的热点数据页。这种情况就是前面提到的预读失效问题</p>
+<p>场景2：当执行一条SQL语句时，如果扫描数据量较大，此时缓冲池就需要加载大量的数据页，从而将之前已经存在的旧数据页全部进行淘汰，最后会导致大量的热数据被置换掉，MySQL的性能急剧下降，这种情况就是前面提到的缓冲池污染问题</p>
+<h4 id="预读机制失效问题的解决方案"><a href="#预读机制失效问题的解决方案" class="headerlink" title="预读机制失效问题的解决方案"></a>预读机制失效问题的解决方案</h4><p>当然，有了问题就需要针对性的进行解决，我们看下MySQL是如何进行解决的，首先针对预读失效场景进行分析，如果我们是设计者会如何进行思考呢？</p>
+<ul>
+<li>首先最容易想到的是，既然是因为加入到LRU链表头部的预读数据造成了误淘汰，那么我们能否让真正被访问的数据才移动到链表头部，暂时不要因为预读的数据而误伤了尾部的数据页</li>
+<li>另外可以尽量的降低影响面，对于预读失效的数据页，尽量的让停留在缓冲池LRU的时间尽量的短</li>
+</ul>
+<p>MySQL针对预读失效的场景是如何进行设计的呢？当然MySQL的设计者可都是一批聪明绝顶的人，这些问题可难不倒他们。</p>
+<p>MySQL采用了冷热数据分离策略，如下图所示</p>
+<img src="https://p.ipic.vip/em7gby.png" alt="image-20231209225036182" style="zoom:67%;" />
+
+
+
+<p>其具体做法就是：</p>
+<ol>
+<li>将LRU链表分为热数据区域（young区，新生代区）和冷数据区域（old区，老年代区），看到这些是不是有一种似曾相识的感觉，JVM里面的新生代和老年代大抵亦是利用这种思想</li>
+<li>将新生代和老年代首尾相连，默认新生代 : 老年代&#x3D;7 : 3，当然这个比例可以根据需要设定</li>
+<li>新页（缓冲池中不存在的数据页，如第一次进行加载），会放入到老年代头部<ul>
+<li>对于真正需要访问的数据页才会放到新生代的头部</li>
+<li>如果老年代的数据页没有被读取，则会比新生代的数据页更容易被淘汰</li>
+</ul>
+</li>
+</ol>
+<p>为了更好的理解LRU的执行过程，针对以下场景进行分析：</p>
+<p>场景1：假设预读到了新数据页40，那么LRU的执行过程，如下图所示</p>
+<img src="https://p.ipic.vip/av9zxb.png" alt="image-20231209230422604" style="zoom:67%;" />
+
+<ul>
+<li>新数据页40会插入到老年代头部，同时老年代尾部的数据页8会被淘汰</li>
+<li>假设新数据页40不会被真正读取，即出现了预读失败，根据前面所讲的淘汰顺序，老年代的数据会比新生代的数据页更快的被淘汰， 那么数据页40将会比新生代的数据页更快的被淘汰</li>
+</ul>
+<p>场景2：假设预读到了新数据页40，并且在老年代停留时间窗口之外（有关停留时间窗口下文会讲到）被访问到了该数据页，那么LRU的执行过程，如下图所示</p>
+<img src="https://p.ipic.vip/gc82nb.png" alt="image-20231209231525710" style="zoom:67%;" />
+
+<ul>
+<li>新数据页40会插入到老年代头部，同时冷数据区域尾部的数据页8会被淘汰</li>
+<li>MySQL访问到数据页40的数据行后，数据页40会被移动到新生代的头部，此时不会有数据页淘汰</li>
+</ul>
+<p>通过场景1,2可以看到通过冷热数据区域分离的精妙之处，新生代尾部的数据页50，无论预读的数据页有没有被读取，都没有被淘汰掉，这样就很好的解决了 “预读失效” 问题。</p>
+<h4 id="缓冲池污染问题的解决方案"><a href="#缓冲池污染问题的解决方案" class="headerlink" title="缓冲池污染问题的解决方案"></a>缓冲池污染问题的解决方案</h4><p>这里提前讲一下MySQL针对LRU做的额外优化：</p>
+<ol>
+<li><p>老年代停留时间窗口策略</p>
+<blockquote>
+<p>加载到老年代的数据页，如果在停留时间窗口内就被访问，那么MySQL并不会立刻把老年代的数据域移动至新生代头部，而只有在老年代的生存时间达到时间窗口，才会被插入到新生代</p>
+</blockquote>
+<p>当然大家不禁要问，时间窗口策略有什么好处，解决了什么问题？</p>
+<blockquote>
+<p>可以细想一下，假设老年代数据页在时间窗口内被访问了一次后，再也不被访问了，其实没有移动至新生代的必要，而应该从老年代尽快的去淘汰它，那么如果移动到新生代必然会带来性能的影响，并且也会造成热数据区域的浪费。 当然，也有可能在时间窗口外，访问了一次数据页之后再也不访问了，那么同样会造成浪费。但是，MySQL做的最起码减少了影响范围。</p>
+</blockquote>
+</li>
+<li><p>新生代1:3链表移动策略</p>
+<blockquote>
+<p>新生代的数据页，如果被访问了并不是每次都需要移动到链表头部。MySQL优化为只有新生代后3&#x2F;4部分被访问才会移动到链表头部，另外1&#x2F;4的数据页被访问并不会移动到新生代头部。</p>
+</blockquote>
+</li>
+</ol>
+<p>同样，大家思考下MySQL这是解决了什么问题？</p>
+<blockquote>
+<p>因为新生代即热数据区域，存放的都是经常被访问的数据，如果每次被访问，都需要将数据页移动至新生代头部，那么会造成新生代异常忙碌，造成CPU资源的浪费。通过这种策略，减少了新生代链表的移动次数。</p>
+</blockquote>
+<p><strong>MySQL解决缓冲池污染问题采用的就是上面提到的老年代停留时间窗口策略，接下来我们可以具体分析一下过程</strong></p>
+<p>首先分析一个场景，假设有一个SQL查询</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> <span class="operator">*</span> <span class="keyword">from</span> <span class="keyword">user</span> <span class="keyword">where</span> name <span class="keyword">like</span> &quot;%yangyong%&quot;</span><br></pre></td></tr></table></figure>
+
+<p>因为MySQL前缀匹配不能走索引，因此需要进行全表扫描，需要访问大量的数据页，大致过程如：</p>
+<ol>
+<li>把数据页插入到老年代头部</li>
+<li>把读取到的数据页移动到新生代头部</li>
+<li>读取数据行进行字符串匹配，如果满足要求加入到结果集</li>
+<li>直至扫描完所有的数据行</li>
+</ol>
+<p>最终导致所有的热数据区域的数据页被置换掉，缓冲池受到污染。</p>
+<p>假设上述SQL进行批量扫描，数据页61,62,63,64,65将要被访问，如下图所示</p>
+<img src="https://p.ipic.vip/ueb931.png" alt="image-20231210214934095" style="zoom:67%;" />
+
+<p>如果没有老年代时间停留窗口策略，这些被批量访问的数据页将会置换出大量的热数据，如下图所示</p>
+<img src="https://p.ipic.vip/r8afxb.png" alt="image-20231210220150823" style="zoom:60%;" />
+
+<p>加入老年代时间停留窗口策略后，会先将需要访问的数据页加载到老年代，而优先淘汰掉老年代中的数据页，如下图所示</p>
+<img src="https://p.ipic.vip/01tu2f.png" alt="image-20231210221201502" style="zoom:60%;" />
+
+<p>假设大于停留时间窗口T后，数据页61,62被访问，那么会被移动到新生代的头部，如下图所示</p>
+<img src="https://p.ipic.vip/xupv37.png" alt="image-20231210221704921" style="zoom:60%;" />
+
+<p>通过上面的分析过程不能理解MySQL是如何通过老年代停留时间窗口机制来解决缓冲池污染问题的。</p>
+<blockquote>
+<p>作者结语：本篇就是分享的关于MySQL如何进行内存管理的内容，always day one!</p>
+</blockquote>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a href="https://yangshaobei.com">YangYong</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://yangshaobei.com/memeryManage/">https://yangshaobei.com/memeryManage/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来自 <a href="https://yangshaobei.com" target="_blank">一叶落而知天下秋</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/MySQL/">MySQL</a></div><div class="post_share"><div class="social-share" data-image="https://s2.loli.net/2023/11/03/rth6zKLAEqsBUMa.jpg" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><div class="post-reward"><div class="reward-button"><i class="fas fa-qrcode"></i>赞助</div><div class="reward-main"><ul class="reward-all"><li class="reward-item"><a href="/img/wechat.jpeg" target="_blank"><img class="post-qr-code-img" src="/img/wechat.jpeg" alt="WeChat微信打赏"/></a><div class="post-qr-code-desc">WeChat微信打赏</div></li><li class="reward-item"><a href="/img/alipay.jpeg" target="_blank"><img class="post-qr-code-img" src="/img/alipay.jpeg" alt="AliPay支付宝打赏"/></a><div class="post-qr-code-desc">AliPay支付宝打赏</div></li></ul></div></div><nav class="pagination-post" id="pagination"><div class="next-post pull-full"><a href="/%E4%B8%AA%E4%BA%BA%E7%AE%80%E4%BB%8B/" title="About Me"><div class="cover" style="background: var(--default-bg-color)"></div><div class="pagination-info"><div class="label">下一篇</div><div class="next_info">About Me</div></div></a></div></nav></div><div class="aside-content" id="aside-content"><div class="card-widget card-info"><div class="is-center"><div class="avatar-img"><img src="https://s2.loli.net/2023/11/03/rth6zKLAEqsBUMa.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info__name">YangYong</div><div class="author-info__description"></div></div><div class="card-info-data site-data is-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">3</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">1</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">0</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/yangyongwff"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons is-center"><a class="social-icon" href="https://github.com/yangyongwff" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:2421506992@qq.com" target="_blank" title="Email"><i class="fas fa-envelope" style="color: #4a7dbe;"></i></a></div></div><div class="card-widget card-announcement"><div class="xpand" style="height:200px;"><canvas class="illo" width="800" height="800" style="max-width: 200px; max-height: 200px; touch-action: none; width: 640px; height: 640px;"></canvas></div><script src="https://fastly.jsdelivr.net/gh/xiaopengand/blogCdn@latest/xzxr/twopeople1.js"></script><script src="https://fastly.jsdelivr.net/gh/xiaopengand/blogCdn@latest/xzxr/zdog.dist.js"></script><script id="rendered-js" src="https://fastly.jsdelivr.net/gh/xiaopengand/blogCdn@latest/xzxr/twopeople.js"></script><style>.card-widget.card-announcement {
+  margin: 0;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+canvas {
+  display: block;
+  margin: 0 auto;
+  cursor: move;
+}</style><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>公告</span></div><div class="announcement_content"><strong>当你选择了一种语言，意味着你还选择了一组技术、一个社区。</strong><br /></div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%88%9D%E8%AF%86%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86"><span class="toc-number">1.</span> <span class="toc-text">初识内存管理</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E4%BD%95%E4%B8%BABuffer-Pool"><span class="toc-number">2.</span> <span class="toc-text">何为Buffer Pool</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E7%BC%93%E5%86%B2%E6%B1%A0%E7%9A%84%E9%A2%84%E8%AF%BB%E6%9C%BA%E5%88%B6"><span class="toc-number">3.</span> <span class="toc-text">缓冲池的预读机制</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E7%BC%93%E5%86%B2%E6%B1%A0%E7%9A%84%E9%A2%84%E8%AF%BB%E6%9C%BA%E5%88%B6%E5%A4%B1%E6%95%88%E9%97%AE%E9%A2%98"><span class="toc-number">4.</span> <span class="toc-text">缓冲池的预读机制失效问题</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E7%BC%93%E5%86%B2%E6%B1%A0%E7%9A%84%E6%B1%A1%E6%9F%93%E9%97%AE%E9%A2%98"><span class="toc-number">5.</span> <span class="toc-text">缓冲池的污染问题</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Buffer-Pool%E5%A6%82%E4%BD%95%E5%AF%B9%E5%8A%A0%E8%BD%BD%E7%9A%84%E6%95%B0%E6%8D%AE%E9%A1%B5%E8%BF%9B%E8%A1%8C%E7%AE%A1%E7%90%86%EF%BC%9F"><span class="toc-number">6.</span> <span class="toc-text">Buffer Pool如何对加载的数据页进行管理？</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E9%A2%84%E8%AF%BB%E6%9C%BA%E5%88%B6%E5%A4%B1%E6%95%88%E9%97%AE%E9%A2%98%E7%9A%84%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88"><span class="toc-number">7.</span> <span class="toc-text">预读机制失效问题的解决方案</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E7%BC%93%E5%86%B2%E6%B1%A0%E6%B1%A1%E6%9F%93%E9%97%AE%E9%A2%98%E7%9A%84%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88"><span class="toc-number">8.</span> <span class="toc-text">缓冲池污染问题的解决方案</span></a></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/memeryManage/" title="MySQL缓冲池的管理机制">MySQL缓冲池的管理机制</a><time datetime="2023-12-10T14:30:55.227Z" title="发表于 2023-12-10 22:30:55">2023-12-10</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/%E4%B8%AA%E4%BA%BA%E7%AE%80%E4%BB%8B/" title="About Me">About Me</a><time datetime="2023-11-04T14:44:51.177Z" title="发表于 2023-11-04 22:44:51">2023-11-04</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/hello-world/" title="Hello World">Hello World</a><time datetime="2023-11-02T14:01:04.157Z" title="发表于 2023-11-02 22:01:04">2023-11-02</time></div></div></div></div></div></div></main><footer id="footer"><div id="footer-wrap"><div class="copyright">&copy;2020 - 2023 By YangYong. All Rights Reserved</div><!--if theme.footer.copyright--><!--  .framework-info--><!--    span= _p('footer.framework') + ' '--><!--    a(href='https://hexo.io')= 'Hexo'--><!--    span.footer-separator |--><!--    span= _p('footer.theme') + ' '--><!--    a(href='https://github.com/jerryc127/hexo-theme-butterfly')= 'Butterfly'--><div class="framework-info"><span>北京市海淀区</span><!--a(href='https://j.map.baidu.com/7d/zdc')= '北京市海淀区'--><!--span= _p('footer.email') + ': 2421506992@qq.com'--><span class="footer-separator">|</span><span>电话: 15520792281</span><!--a(href='https://github.com/jerryc127/hexo-theme-butterfly')= '15520792281'--></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="浅色和深色模式转换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox/fancybox.umd.min.js"></script><div class="js-pjax"></div><div class="aplayer no-destroy" data-id="1982066521" data-server="netease" data-type="playlist" data-fixed="true" data-autoplay="true" data-lrcType="-1"> </div><canvas class="fireworks" mobile="false"></canvas><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/dist/fireworks.min.js"></script><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aplayer/dist/APlayer.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/aplayer/dist/APlayer.min.js"></script><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/metingjs/dist/Meting.min.js"></script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script></div><script src="/live2dw/lib/L2Dwidget.min.js?094cbace49a39548bed64abff5988b05"></script><script>L2Dwidget.init({"pluginModelPath":"assets/","model":{"jsonPath":"/live2dw/assets/miku.model.json"},"display":{"position":"left","width":150,"height":300},"mobile":{"show":false},"react":{"opacity":0.8},"log":false,"pluginJsPath":"lib/","pluginRootPath":"live2dw/","tagMode":false});</script></body></html>
