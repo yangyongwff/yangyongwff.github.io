@@ -7,7 +7,7 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:image" content="https://s2.loli.net/2023/11/03/rth6zKLAEqsBUMa.jpg">
 <meta property="article:published_time" content="2024-01-12T02:00:00.000Z">
-<meta property="article:modified_time" content="2024-01-15T14:56:37.794Z">
+<meta property="article:modified_time" content="2024-01-17T01:50:46.889Z">
 <meta property="article:author" content="YangYong">
 <meta property="article:tag" content="MySQL">
 <meta name="twitter:card" content="summary">
@@ -56,7 +56,7 @@
   isHome: false,
   isHighlightShrink: false,
   isToc: true,
-  postUpdate: '2024-01-15 22:56:37'
+  postUpdate: '2024-01-17 09:50:46'
 }</script><script>(win=>{
       win.saveToLocal = {
         set: (key, value, ttl) => {
@@ -160,7 +160,7 @@
 document.addEventListener('pjax:send', () => {
   Pace.restart()
 })
-</script><link rel="stylesheet" href="/css/corner-indicator.css"/><script src="https://cdn.jsdelivr.net/npm/pace-js/pace.min.js"></script><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img is-center"><img src="https://s2.loli.net/2023/11/03/rth6zKLAEqsBUMa.jpg" onerror="onerror=null;src='/img/friend_404.gif'" alt="avatar"/></div><div class="sidebar-site-data site-data is-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">5</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">3</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">2</div></a></div><hr class="custom-hr"/><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page group" href="javascript:void(0);"><i class="fa-fw fas fa-list"></i><span> 列表</span><i class="fas fa-chevron-down"></i></a><ul class="menus_item_child"><li><a class="site-page child" href="/music/"><i class="fa-fw fas fa-music"></i><span> 音乐</span></a></li><li><a class="site-page child" href="/movies/"><i class="fa-fw fas fa-video"></i><span> 电影</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/comments/"><i class="fa-fw fas fa-envelope-open"></i><span> 留言板</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header"><nav id="nav"><span id="blog-info"><a href="/" title="一叶落而知天下秋"><img class="site-icon" src="https://s2.loli.net/2023/11/03/Vks4hDy65wOURJn.png"/><span class="site-name">一叶落而知天下秋</span></a></span><div id="menus"><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page group" href="javascript:void(0);"><i class="fa-fw fas fa-list"></i><span> 列表</span><i class="fas fa-chevron-down"></i></a><ul class="menus_item_child"><li><a class="site-page child" href="/music/"><i class="fa-fw fas fa-music"></i><span> 音乐</span></a></li><li><a class="site-page child" href="/movies/"><i class="fa-fw fas fa-video"></i><span> 电影</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/comments/"><i class="fa-fw fas fa-envelope-open"></i><span> 留言板</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div><div id="toggle-menu"><a class="site-page" href="javascript:void(0);"><i class="fas fa-bars fa-fw"></i></a></div></div></nav><div id="post-info"><h1 class="post-title">MySQL存储架构</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2024-01-12T02:00:00.000Z" title="发表于 2024-01-12 10:00:00">2024-01-12</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2024-01-15T14:56:37.794Z" title="更新于 2024-01-15 22:56:37">2024-01-15</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/MySQL/">MySQL</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title="MySQL存储架构"><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">阅读量:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="post-content" id="article-container"><blockquote>
+</script><link rel="stylesheet" href="/css/corner-indicator.css"/><script src="https://cdn.jsdelivr.net/npm/pace-js/pace.min.js"></script><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img is-center"><img src="https://s2.loli.net/2023/11/03/rth6zKLAEqsBUMa.jpg" onerror="onerror=null;src='/img/friend_404.gif'" alt="avatar"/></div><div class="sidebar-site-data site-data is-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">5</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">3</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">2</div></a></div><hr class="custom-hr"/><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page group" href="javascript:void(0);"><i class="fa-fw fas fa-list"></i><span> 列表</span><i class="fas fa-chevron-down"></i></a><ul class="menus_item_child"><li><a class="site-page child" href="/music/"><i class="fa-fw fas fa-music"></i><span> 音乐</span></a></li><li><a class="site-page child" href="/movies/"><i class="fa-fw fas fa-video"></i><span> 电影</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/comments/"><i class="fa-fw fas fa-envelope-open"></i><span> 留言板</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header"><nav id="nav"><span id="blog-info"><a href="/" title="一叶落而知天下秋"><img class="site-icon" src="https://s2.loli.net/2023/11/03/Vks4hDy65wOURJn.png"/><span class="site-name">一叶落而知天下秋</span></a></span><div id="menus"><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page group" href="javascript:void(0);"><i class="fa-fw fas fa-list"></i><span> 列表</span><i class="fas fa-chevron-down"></i></a><ul class="menus_item_child"><li><a class="site-page child" href="/music/"><i class="fa-fw fas fa-music"></i><span> 音乐</span></a></li><li><a class="site-page child" href="/movies/"><i class="fa-fw fas fa-video"></i><span> 电影</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/comments/"><i class="fa-fw fas fa-envelope-open"></i><span> 留言板</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div><div id="toggle-menu"><a class="site-page" href="javascript:void(0);"><i class="fas fa-bars fa-fw"></i></a></div></div></nav><div id="post-info"><h1 class="post-title">MySQL存储架构</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2024-01-12T02:00:00.000Z" title="发表于 2024-01-12 10:00:00">2024-01-12</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2024-01-17T01:50:46.889Z" title="更新于 2024-01-17 09:50:46">2024-01-17</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/MySQL/">MySQL</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title="MySQL存储架构"><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">阅读量:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="post-content" id="article-container"><blockquote>
 <p>之前看&lt;&lt;从根儿上理解MySQL&gt;&gt;，对MySQL的数据存储架构有了一定的理解。但是时间久了还是容易生疏，目前趁机进行梳理，更加细节的对MySQL的存储结构进行总结，进而来巩固自己的知识点</p>
 </blockquote>
 <h4 id="MySQL的逻辑存储结构"><a href="#MySQL的逻辑存储结构" class="headerlink" title="MySQL的逻辑存储结构"></a>MySQL的逻辑存储结构</h4><blockquote>
@@ -170,9 +170,9 @@ document.addEventListener('pjax:send', () => {
 <p><img src="https://dev.mysql.com/doc/refman/8.0/en/images/innodb-architecture-8-0.png" alt="InnoDB architecture diagram showing in-memory and on-disk structures. In-memory structures include the buffer pool, adaptive hash index, change buffer, and log buffer. On-disk structures include tablespaces, redo logs, and doublewrite buffer files."></p>
 <p>InnoDB的数据页被逻辑存放在一个空间内，称为表空间（tablespace）。该表空间由段（segment）、区（extent）、页（page）组成。</p>
 <p>在存储层面，MySQL表就是.frm和.ibd文件组成。在物理层面，MySQL表就是一个二进制文件。在二进制文件的基础上，分析其内部逻辑组织结构，示意图1-2如下：</p>
-<p><img src="http://s6tlloufn.hn-bkt.clouddn.com/2024-01-07-043558.png" alt="image-20240107123557585"></p>
+<p><img src="https://img1.imgtp.com/2024/01/17/v52DKTjh.png" alt="WX20240117-094145@2x.png"></p>
 <p>InnoDB存储引擎的逻辑存储结构，示意图1-3如下：</p>
-<p><img src="http://s6tlloufn.hn-bkt.clouddn.com/2024-01-07-090546.png" alt="image-20240107170546229"></p>
+<p><img src="https://img1.imgtp.com/2024/01/17/Z6Bt6TtO.png" alt="WX20240117-094208@2x.png"></p>
 <h4 id="表空间"><a href="#表空间" class="headerlink" title="表空间"></a>表空间</h4><p>表空间是一个物理容器，表空间存储的对象是段，在一个表空间中可以看成是一个或多个段。MySQL数据库有多个表空间，如系统表空间、用户表空间、临时表空间等。通过上面的逻辑结构示意图可以看到，表空间是InnoDB存储引擎的逻辑结构最高层，所有的数据都存放在表空间。</p>
 <ul>
 <li><p>系统表空间（System Tablespace）</p>
@@ -207,9 +207,9 @@ document.addEventListener('pjax:send', () => {
 <p>每向表中插入一条数据，本质上就是向该表的聚簇索引和所有的二级索引代表的B+树节点插入对应的数据。</p>
 <p>InnoDB 对 B+ 树的叶子节点和非叶子节点进行了区别对待，也就是说叶子节点有自己独有的区，非叶子节点也有自己独有的区。存放叶子节点的区的集合就算是一个段，存放非叶子节点的区的集合也算是一个段。也就是说一个索引会生成两个段，一个叶子节点段和一个非叶子节点段。</p>
 <p>InnoDB为每一个segment定义了一个INode Entry结构来记录段中的属性， INode Entry的结构，示意图1-5如下：</p>
-<p><img src="http://s6tlloufn.hn-bkt.clouddn.com/2024-01-13-130702.png" alt="image-20240113210701549"></p>
+<p><img src="https://img1.imgtp.com/2024/01/17/R0KEali4.png" alt="WX20240117-094240@2x.png"></p>
 <ul>
-<li>Segment ID：段的唯一标识ID</li>
+<li>Segment ID: 段的唯一标识ID</li>
 <li>NOT_FULL_N_USED：指在NOT_FULL链表中已经使用了多少页面</li>
 <li>3个List Bae Node：分别为段的 FREE 链表、NOT_FULL 链表、FULL 链表定义的头节点</li>
 <li>Magic Number：魔法数用来标记INode Entry是否已经被初始化</li>
@@ -225,8 +225,8 @@ document.addEventListener('pjax:send', () => {
 <p>通过上面的示意图1-4可看出区的结构</p>
 <p>其中，extent0的最开始3个页面的类型是固定的，分别是：</p>
 <ul>
-<li>FSP_HDR：登记整个表空间的一些整体属性以及本组所有的区。整个表空间只有一个 FSP_HDR 类型的页面</li>
-<li>IBUF_BITMAP：存储本组所有的区的所有页面关于 INSERT BUFFER 的信息</li>
+<li>FSP_HDR：登记整个表空间的一些整体属性以及本组所有的区。整个表空间只有一个 FSP_HDR 类型的页面。</li>
+<li>IBUF_BITMAP：存储本组所有的区的所有页面关于 INSERT BUFFER 的信息。</li>
 <li>INODE：存储了许多称为 INODE 的数据结构</li>
 </ul>
 <p>其它extent的最开始的2个页面的类型也是固定的，分别是：</p>
@@ -238,7 +238,7 @@ document.addEventListener('pjax:send', () => {
 <p>XDES：为了方便管理区，MySQL 设计了 XDES Entry结构，每个区都对应着一个 XDES Entry，这个结构记录了对应的区的一些属性</p>
 </blockquote>
 <p>XDES Entry的结构，示意图1-6如下：</p>
-<p><img src="http://s6tlloufn.hn-bkt.clouddn.com/2024-01-13-141814.png" alt="image-20240113221813463"></p>
+<p><img src="https://img1.imgtp.com/2024/01/17/ifdxjmsJ.png" alt="WX20240117-094300@2x.png"></p>
 <ul>
 <li><p>Segment ID: 该区所在的段ID</p>
 </li>
@@ -265,7 +265,7 @@ document.addEventListener('pjax:send', () => {
 <li><p>把状态为 FULL_FRAG 的区对应的 XDES Entry 结构通过 List Node 来连接成一个链表，即 FULL_FRAG 链表</p>
 </li>
 </ul>
-<p>碎片区</p>
+<p>碎片区：</p>
 <blockquote>
 <p>段是以区为单位申请存储空间的，一个区默认占用 1MB 的空间，如果为段中很小的数据量申请区，则会造成大量空间的浪费，所以 InnoDB 提出了碎片区的概念，碎片区中的页并不都是为了存储同一个段中的数据而存在的，比如有的页用于段 A，有的用于段 B，有的页甚至哪个段也不属于。<strong>碎片区直属于表空间，并不属于任何一个段。</strong></p>
 </blockquote>
@@ -279,7 +279,7 @@ document.addEventListener('pjax:send', () => {
 </blockquote>
 <p>上面讲到InnoDB进行数据读取的基本单位是页，这些页是通过区的ListNode双向链表结构链接起来的。下面看下数据页的结构具体是怎样的呢？</p>
 <p>InnoDB数据页结构，示意图1-7如下：</p>
-<p><img src="http://s6tlloufn.hn-bkt.clouddn.com/2024-01-14-025708.png" alt="image-20240114105707801"></p>
+<p><img src="https://img1.imgtp.com/2024/01/17/WryNd9AN.png" alt="WX20240117-094318@2x.png"></p>
 <table>
 <thead>
 <tr>
@@ -332,7 +332,7 @@ document.addEventListener('pjax:send', () => {
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; CREATE TABLE page_demo(</span><br><span class="line">    -&gt;     c1 BIGINT(20) NOT NULL DEFAULT &#x27;0&#x27; AUTO_INCREMENT COMMENT &#x27;主键&#x27;,</span><br><span class="line">    -&gt;     c2 BIGINT(20) NOT NULL DEFAULT &#x27;0&#x27;,</span><br><span class="line">    -&gt;     c3 VARCHAR(255) NOT NULL DEFAULT &#x27;&#x27;,</span><br><span class="line">    -&gt;     PRIMARY KEY (c1)</span><br><span class="line">    -&gt; ) ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=Compact COMMENT=&#x27;数据页demo&#x27;;</span><br><span class="line">Query OK, 0 rows affected (0.03 sec)</span><br></pre></td></tr></table></figure>
 
 <p>假设page_demo中有6条记录，InnoDB会将这些数据分成两组，这里并不是平均分，第一组只有一个最小记录，第二组是剩余的5条记录。示意图1-7如下：（关于记录头信息每一项的含义，请继续往下进行阅读）</p>
-<p><img src="http://s6tlloufn.hn-bkt.clouddn.com/2024-01-14-142049.png" alt="image-20240114222049444"></p>
+<p><img src="https://img1.imgtp.com/2024/01/17/ZMr2AoCf.png" alt="WX20240117-094336@2x.png"></p>
 <p>每个记录组的最后一条记录就是组内最大的那条记录，并且同一个组的最后一条记录的头信息中会存储该组一共有多少条记录，作为 n_owned 字段，其他记录的n_owned字段为0。</p>
 <p>页目录（Page Directory）用来存储每组最后一条记录的地址偏移量，这些地址偏移量会按照先后顺序起来，每组的地址偏移量也被称之为槽（slot），<strong>每个槽相当于指针指向了不同组的最后一个记录</strong>。</p>
 <p>大家可能有疑问的是，为什么上面进行分组的时候，槽0为什么只有一条记录？</p>
@@ -346,7 +346,7 @@ document.addEventListener('pjax:send', () => {
 </blockquote>
 <p>另外需要思考的是，有了这些数据记录MySQL究竟是通过什么方法找到记录的呢？</p>
 <blockquote>
-<p>其实就是二分法，因为每个槽中对应响应分组中的主键值最大的记录，可以通过最大主键值和目标主键进行比较，寻找到对应的槽，然后进行链表的单向寻找。</p>
+<p>其实就是二分法，因为每个槽中对应响应分组中的主键值最大的记录，可以通过最大主键值和目标主键进行比较，寻找到对应的槽，然后进行链表的单向寻找</p>
 <p>假设现在要查询主键值为m的记录，最低槽 low &#x3D; 0, 最高槽high&#x3D;n，那么具体过程为：</p>
 <ol>
 <li>计算中间槽的位置 (low + high) &#x2F; 2 &#x3D; i, 槽i对应的主键值k和m进行比较，如果k &lt; m，设置low &#x3D; i + 1；否则设置 high &#x3D; i - 1</li>
@@ -363,13 +363,13 @@ document.addEventListener('pjax:send', () => {
 <p>MySQL 5.0之后默认使用的是 Dynamic 的行格式</p>
 <p>因为Redundant是MySQL 5.0之前的格式，现在很少使用，不进行讲解，如果感兴趣可以从网上搜素资料来详细了解。下面主要讲解Dynamic行格式和Compact行格式</p>
 <p>Compact行格式，示意图1-8如下：</p>
-<p><img src="http://s6tlloufn.hn-bkt.clouddn.com/2024-01-15-141548.png" alt="image-20240115221548222"></p>
+<p><img src="https://img1.imgtp.com/2024/01/17/RmNOrwwV.png" alt="WX20240117-094518@2x.png"></p>
 <p>Compact行格式描述信息说明：</p>
 <table>
 <thead>
 <tr>
 <th>名称</th>
-<th>大小</th>
+<th>大小(Bit)</th>
 <th>描述</th>
 </tr>
 </thead>
@@ -415,7 +415,7 @@ document.addEventListener('pjax:send', () => {
 </tr>
 <tr>
 <td>min_rec_mask</td>
-<td>1</td>
+<td></td>
 <td>B+树每层非叶子节点小记录都会添加该标记</td>
 </tr>
 <tr>
@@ -430,7 +430,7 @@ document.addEventListener('pjax:send', () => {
 </tr>
 <tr>
 <td>record_type</td>
-<td>3</td>
+<td></td>
 <td>表⽰当前记录的类型，0表⽰普通记录，1表⽰B+树⾮叶⼦节点记录,2表⽰⼩记录，3表⽰⼤记录</td>
 </tr>
 <tr>
