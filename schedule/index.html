@@ -1,0 +1,476 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>定时任务系统原理与实现分析 | 一叶落而知天下秋</title><meta name="author" content="YangYong"><meta name="copyright" content="YangYong"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="一、定时任务系统的实现方式定时任务核心接口：    接口名称 作用    tick 不同实现方式表示含义不同   addTimer 向容器中添加一个定时器，并返回定时器的指针   delTimer 根据传入的定时器指针删除容器中的一个定时器，并且销毁资源   resetTimer 重置一个定时器   getMinExpire 不同实现方式表示含义不同   各种实现方式对比：    实现方式 Add">
+<meta property="og:type" content="article">
+<meta property="og:title" content="定时任务系统原理与实现分析">
+<meta property="og:url" content="https://yangshaobei.com/schedule/index.html">
+<meta property="og:site_name" content="一叶落而知天下秋">
+<meta property="og:description" content="一、定时任务系统的实现方式定时任务核心接口：    接口名称 作用    tick 不同实现方式表示含义不同   addTimer 向容器中添加一个定时器，并返回定时器的指针   delTimer 根据传入的定时器指针删除容器中的一个定时器，并且销毁资源   resetTimer 重置一个定时器   getMinExpire 不同实现方式表示含义不同   各种实现方式对比：    实现方式 Add">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://s2.loli.net/2023/11/03/rth6zKLAEqsBUMa.jpg">
+<meta property="article:published_time" content="2024-03-20T12:37:51.000Z">
+<meta property="article:modified_time" content="2024-11-08T14:58:39.416Z">
+<meta property="article:author" content="YangYong">
+<meta property="article:tag" content="定时任务原理">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://s2.loli.net/2023/11/03/rth6zKLAEqsBUMa.jpg"><link rel="shortcut icon" href="/img/logo.png"><link rel="canonical" href="https://yangshaobei.com/schedule/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css" media="print" onload="this.media='all'"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox/fancybox.min.css" media="print" onload="this.media='all'"><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: undefined,
+  translate: undefined,
+  noticeOutdate: undefined,
+  highlight: {"plugin":"highlighjs","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false},
+  copy: {
+    success: '复制成功',
+    error: '复制错误',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'fancybox',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyload: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: '定时任务系统原理与实现分析',
+  isPost: true,
+  isHome: false,
+  isHighlightShrink: false,
+  isToc: true,
+  postUpdate: '2024-11-08 22:58:39'
+}</script><script>(win=>{
+      win.saveToLocal = {
+        set: (key, value, ttl) => {
+          if (ttl === 0) return
+          const now = Date.now()
+          const expiry = now + ttl * 86400000
+          const item = {
+            value,
+            expiry
+          }
+          localStorage.setItem(key, JSON.stringify(item))
+        },
+      
+        get: key => {
+          const itemStr = localStorage.getItem(key)
+      
+          if (!itemStr) {
+            return undefined
+          }
+          const item = JSON.parse(itemStr)
+          const now = Date.now()
+      
+          if (now > item.expiry) {
+            localStorage.removeItem(key)
+            return undefined
+          }
+          return item.value
+        }
+      }
+    
+      win.getScript = (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        script.onerror = reject
+        script.onload = script.onreadystatechange = function() {
+          const loadState = this.readyState
+          if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+          script.onload = script.onreadystatechange = null
+          resolve()
+        }
+
+        Object.keys(attr).forEach(key => {
+          script.setAttribute(key, attr[key])
+        })
+
+        document.head.appendChild(script)
+      })
+    
+      win.getCSS = (url, id = false) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onerror = reject
+        link.onload = link.onreadystatechange = function() {
+          const loadState = this.readyState
+          if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+          link.onload = link.onreadystatechange = null
+          resolve()
+        }
+        document.head.appendChild(link)
+      })
+    
+      win.activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      win.activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+      const t = saveToLocal.get('theme')
+    
+        if (t === 'dark') activateDarkMode()
+        else if (t === 'light') activateLightMode()
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        if (asideStatus === 'hide') {
+          document.documentElement.classList.add('hide-aside')
+        } else {
+          document.documentElement.classList.remove('hide-aside')
+        }
+      }
+    
+      const detectApple = () => {
+        if(/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)){
+          document.documentElement.classList.add('apple')
+        }
+      }
+      detectApple()
+    })(window)</script><link rel="stylesheet" href="APlayer.min.css"><div id="aplayer"></div><!--script(src="https://cdn.jsdelivr.net/gh/radium-bit/res@master/live2d/autoload.js" async)--><script src="https://cdn.jsdelivr.net/npm/meting@2/dist/Meting.min.js" async></script><meta name="generator" content="Hexo 7.0.0"></head><body><script>window.paceOptions = {
+  restartOnPushState: false
+}
+
+document.addEventListener('pjax:send', () => {
+  Pace.restart()
+})
+</script><link rel="stylesheet" href="/css/corner-indicator.css"/><script src="https://cdn.jsdelivr.net/npm/pace-js/pace.min.js"></script><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img is-center"><img src="https://s2.loli.net/2023/11/03/rth6zKLAEqsBUMa.jpg" onerror="onerror=null;src='/img/friend_404.gif'" alt="avatar"/></div><div class="sidebar-site-data site-data is-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">8</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">5</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">5</div></a></div><hr class="custom-hr"/><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page group" href="javascript:void(0);"><i class="fa-fw fas fa-list"></i><span> 列表</span><i class="fas fa-chevron-down"></i></a><ul class="menus_item_child"><li><a class="site-page child" href="/music/"><i class="fa-fw fas fa-music"></i><span> 音乐</span></a></li><li><a class="site-page child" href="/movies/"><i class="fa-fw fas fa-video"></i><span> 电影</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/comments/"><i class="fa-fw fas fa-envelope-open"></i><span> 留言板</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header"><nav id="nav"><span id="blog-info"><a href="/" title="一叶落而知天下秋"><img class="site-icon" src="https://s2.loli.net/2023/11/03/Vks4hDy65wOURJn.png"/><span class="site-name">一叶落而知天下秋</span></a></span><div id="menus"><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page group" href="javascript:void(0);"><i class="fa-fw fas fa-list"></i><span> 列表</span><i class="fas fa-chevron-down"></i></a><ul class="menus_item_child"><li><a class="site-page child" href="/music/"><i class="fa-fw fas fa-music"></i><span> 音乐</span></a></li><li><a class="site-page child" href="/movies/"><i class="fa-fw fas fa-video"></i><span> 电影</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/comments/"><i class="fa-fw fas fa-envelope-open"></i><span> 留言板</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div><div id="toggle-menu"><a class="site-page" href="javascript:void(0);"><i class="fas fa-bars fa-fw"></i></a></div></div></nav><div id="post-info"><h1 class="post-title">定时任务系统原理与实现分析</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2024-03-20T12:37:51.000Z" title="发表于 2024-03-20 20:37:51">2024-03-20</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2024-11-08T14:58:39.416Z" title="更新于 2024-11-08 22:58:39">2024-11-08</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E4%B8%AD%E9%97%B4%E4%BB%B6/">中间件</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title="定时任务系统原理与实现分析"><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">阅读量:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="post-content" id="article-container"><h1 id="一、定时任务系统的实现方式"><a href="#一、定时任务系统的实现方式" class="headerlink" title="一、定时任务系统的实现方式"></a>一、定时任务系统的实现方式</h1><p>定时任务核心接口：</p>
+<table>
+<thead>
+<tr>
+<th>接口名称</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>tick</td>
+<td>不同实现方式表示含义不同</td>
+</tr>
+<tr>
+<td>addTimer</td>
+<td>向容器中添加一个定时器，并返回定时器的指针</td>
+</tr>
+<tr>
+<td>delTimer</td>
+<td>根据传入的定时器指针删除容器中的一个定时器，并且销毁资源</td>
+</tr>
+<tr>
+<td>resetTimer</td>
+<td>重置一个定时器</td>
+</tr>
+<tr>
+<td>getMinExpire</td>
+<td>不同实现方式表示含义不同</td>
+</tr>
+</tbody></table>
+<p>各种实现方式对比：</p>
+<table>
+<thead>
+<tr>
+<th><strong>实现方式</strong></th>
+<th><strong>AddTimer</strong></th>
+<th><strong>DelTimer</strong></th>
+<th><strong>ToDoTimer</strong></th>
+</tr>
+</thead>
+<tbody><tr>
+<td>基于链表</td>
+<td>O(1)</td>
+<td>O(n)</td>
+<td>O(n)</td>
+</tr>
+<tr>
+<td>基于排序链表</td>
+<td>O(n)</td>
+<td>O(1)</td>
+<td>O(1)</td>
+</tr>
+<tr>
+<td><strong>基于最小堆</strong></td>
+<td>O(lgn)</td>
+<td>O(1) （后面分析）</td>
+<td>O(1)</td>
+</tr>
+<tr>
+<td><strong>基于时间轮</strong></td>
+<td>O(1)</td>
+<td>O(1)</td>
+<td>O(1)(前提是使用多个轮子来实现，不过单个轮子也要比O(n)快得多)</td>
+</tr>
+</tbody></table>
+<h2 id="1-1-最小堆"><a href="#1-1-最小堆" class="headerlink" title="1.1 最小堆"></a>1.1 最小堆</h2><blockquote>
+<p>最小堆是一种特殊的完全二叉树，任意非叶子节点的值不大于其子节点</p>
+</blockquote>
+<blockquote>
+<p>具体实现代表就是 JDK 中的 Timer 定时器</p>
+</blockquote>
+<p><img src="https://cooper.didichuxing.com/uploader/f/oRdVuewrDV8h3ovE.png?accessToken=eyJhbGciOiJIUzI1NiIsImtpZCI6ImRlZmF1bHQiLCJ0eXAiOiJKV1QifQ.eyJleHAiOjE3MzEwNzc5ODMsImZpbGVHVUlEIjoieGQwQmpJdFFSWWtvWnFwdiIsImlhdCI6MTczMTA3NzM4MywiaXNzIjoidXBsb2FkZXJfYWNjZXNzX3Jlc291cmNlIiwidXNlcklkIjoxMDAwMDAyODY0MH0.fJyBLlFIktnCpHrJvdDpmQ8u4UraIQ4QoHyJvmSJrwg" alt="img"></p>
+<p><strong>思考1：如何选取定时任务的键？</strong></p>
+<blockquote>
+<p>通常情况下，最小堆的键是定时器任务的到期时间（即任务需要执行的时间点）。这是因为最小堆的数据结构特性使得堆顶元素总是具有最小的键值，在定时器场景中，这意味着堆顶元素是下一个需要执行的任务。</p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">示例</span><br><span class="line">假设有以下几个定时器任务：</span><br><span class="line">任务A，到期时间为1622548800（Unix时间戳）</span><br><span class="line">任务B，到期时间为1622548805</span><br><span class="line">任务C，到期时间为1622548810</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">最小堆后的结构将如下：</span><br><span class="line">       1622548800 (A)</span><br><span class="line">       /        \</span><br><span class="line">1622548805 (B)  1622548810 (C)</span><br></pre></td></tr></table></figure>
+
+
+
+<p><strong>思考2：生成最小堆的时候会把任务的所有键一次性全部插入？</strong></p>
+<blockquote>
+<p>任务的所有键可以一次性加入堆中，或者逐个插入。选择哪种方法取决于具体应用场景和实现方式</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>插入方式</th>
+<th>描述</th>
+<th>缺点</th>
+<th>优点</th>
+<th>适用范围</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一次性插入</td>
+<td>将全部解析cron表达式，并一次性加入所有任务的键（到期时间）一次性加入堆中，然后通过堆化操作构建最小堆。</td>
+<td>内存占用高：如果任务时间点数量巨大，会占用大量内存初始解析开销大：一次性解析所有时间点可能需要较长时间</td>
+<td>简化调度逻辑：所有任务一次性加入堆，调度器只需要从堆中取出任务并执行减少解析频率：避免了频繁解析 cron 表达式</td>
+<td>任务时间点数量有限或明确的情况</td>
+</tr>
+<tr>
+<td><strong>渐进式插入</strong></td>
+<td>每次只解析最近的一段时间，将这段时间内的任务加入到最小堆中，并定期解析接下来的时间段。</td>
+<td>复杂调度逻辑：需要管理定期解析和任务加入的逻辑。解析频率高：需要频繁解析 cron 表达式。</td>
+<td>内存占用低：每次只处理一小部分任务，内存占用较低解析开销分散：解析工作分散到多个时间点，减少单次解析的开销</td>
+<td>任务时间点分布广泛或无限的情况</td>
+</tr>
+</tbody></table>
+<p><strong>思考3：</strong>思考1和思考2解决了如何构建最小堆的问题，并未告诉什么时候扫描最小堆，以及如何扫描？</p>
+<blockquote>
+<p>将所有定时器中超时时间最小的一个定时器的超时值作为心搏间隔，这样，一旦心搏函数tick被调用，超时时间最小的定时器必然到期，我们就可以在tick函数中处理该定时器。然后，再从剩余的定时器中找到超时时间最小的一个，并将这段最小时间设置为下一次心搏间隔，如此反复，就实现了较为精确的定时</p>
+</blockquote>
+<p>重要函数：</p>
+<p>tick ：在tick函数中循环查找超时值最小的定时器，并调用其回调函数，直到找到的定时器的没有超时，就结束循环</p>
+<p>getMinExpire：获取容器中超时值最小的绝对时间</p>
+<p><strong>关键函数时间复杂度分析</strong></p>
+<blockquote>
+<p>主要借助哈希表进行优化查找过程</p>
+</blockquote>
+<p>在基于最小堆的数据结构中，定时器删除操作（DelTimer）的时间复杂度之所以可以达到 O(1)，是因为某些具体实现中的优化手段。最小堆的删除操作通常涉及到以下步骤：</p>
+<ol>
+<li><strong>找到要删除的元素</strong>：在一般的最小堆（例如优先队列）中，这个操作需要 O(logn) 的时间复杂度，因为需要遍历整个堆来找到元素。</li>
+<li><strong>删除元素并重构堆</strong>：这一步通常是 O(log⁡n) 的时间复杂度，因为需要从堆中移除元素，然后进行堆的调整（堆化）。</li>
+</ol>
+<p>某些定时器实现中，通过结合哈希表来优化这两个步骤，使得删除操作可以在 O(1)的时间复杂度内完成。优化思路如下：</p>
+<ol>
+<li><strong>哈希表记录位置</strong>：在插入元素到最小堆时，同时将元素的位置记录在一个哈希表中。</li>
+<li><strong>快速定位元素</strong>：当需要删除某个元素时，可以通过哈希表快速找到该元素在堆中的位置，这一步操作的时间复杂度是 O(1)</li>
+<li><strong>交换并删除</strong>：找到元素后，将其与堆的最后一个元素交换，然后移除最后一个元素。再对交换位置进行堆化操作。</li>
+<li><strong>堆化调整</strong>：这一步的时间复杂度是 O(log⁡n)</li>
+</ol>
+<h2 id="1-2-时间轮"><a href="#1-2-时间轮" class="headerlink" title="1.2 时间轮"></a>1.2 时间轮</h2><p>Kafka、Dubbo、ZooKeeper、Netty、Caffeine 中都有对时间轮的实现</p>
+<ul>
+<li>Round时间轮</li>
+</ul>
+<p><img src="https://cooper.didichuxing.com/uploader/f/YNiuwqvpqnSPx0Mz.png?accessToken=eyJhbGciOiJIUzI1NiIsImtpZCI6ImRlZmF1bHQiLCJ0eXAiOiJKV1QifQ.eyJleHAiOjE3MzEwNzc5ODMsImZpbGVHVUlEIjoieGQwQmpJdFFSWWtvWnFwdiIsImlhdCI6MTczMTA3NzM4MywiaXNzIjoidXBsb2FkZXJfYWNjZXNzX3Jlc291cmNlIiwidXNlcklkIjoxMDAwMDAyODY0MH0.fJyBLlFIktnCpHrJvdDpmQ8u4UraIQ4QoHyJvmSJrwg" alt="img"></p>
+<p>轮中实线指针指向轮中的一个槽（slot）。它以恒定的速度顺时针转动，每转动一步就指向下一个槽（虚线指针指向的槽），每次转动一次称为一个滴答（tick）。一个滴答的时间称为时间轮的槽间隔si（slot interval），它实际上就是定时器的心搏时间。该时间轮共有N个槽，因此它转一圈所需的时间就是N<em>si。每个槽中保存了一个定时器链表，时间轮的结构与哈希链表的结构是比较相似的。槽中的每条链表上的定时器具有相同的特征：它们的定时相差N</em>si的整数倍。时间轮正是利用这个关系将定时器散列到不同的链表中的。</p>
+<p>假如现在指针指向槽cs，我们要添加一个定时时间为ti的定时器，则该定时器将被插入槽ts对应链表中的：</p>
+<p><em>ts</em>&#x3D;(<em>cs</em>+(<em>ti</em>&#x2F;<em>si</em>))%<em>N</em></p>
+<p><strong>思考：这里ts只是指出了slot的位置，但是未包含圈数，怎么办呢？</strong></p>
+<blockquote>
+<p>维护圈数变量或者多层次时间轮</p>
+</blockquote>
+<blockquote>
+</blockquote>
+<ul>
+<li>分层时间轮</li>
+</ul>
+<p>类似手表，Kafka 的延迟消息采用的就是这种方案</p>
+<p><img src="https://cooper.didichuxing.com/uploader/f/x7gbo6RQco5gYNuh.png?accessToken=eyJhbGciOiJIUzI1NiIsImtpZCI6ImRlZmF1bHQiLCJ0eXAiOiJKV1QifQ.eyJleHAiOjE3MzEwNzc5ODMsImZpbGVHVUlEIjoieGQwQmpJdFFSWWtvWnFwdiIsImlhdCI6MTczMTA3NzM4MywiaXNzIjoidXBsb2FkZXJfYWNjZXNzX3Jlc291cmNlIiwidXNlcklkIjoxMDAwMDAyODY0MH0.fJyBLlFIktnCpHrJvdDpmQ8u4UraIQ4QoHyJvmSJrwg" alt="img"></p>
+<p>上图的时间轮(ms -&gt; s)，第 1 层的时间精度为 1 ，第 2 层的时间精度为 20 ，第 3 层的时间精度为 400。假如我们需要添加一个 350s 后执行的任务 A 的话（当前时间是 0s），这个任务会被放在第 2 层（因为第二层的时间跨度为 20*20&#x3D;400&gt;350）的第 350&#x2F;20&#x3D;17 个时间格子。</p>
+<p>当第一层转了 17 圈之后，时间过去了 340s ，第 2 层的指针此时来到第 17 个时间格子。此时，第 2 层第 17 个格子的任务会被移动到第 1 层。</p>
+<p>任务 A 当前是 10s 之后执行，因此它会被移动到第 1 层的第 10 个时间格子。</p>
+<p>注意：任务会不断地计算并移动到不同层级的时间轮</p>
+<p><strong>时间复杂度分析</strong></p>
+<p>通过上面的分析可知，任务写入和执行的时间复杂度都是O(1)</p>
+<h1 id="二、Quartz分布式定时任务系统的基本实现原理"><a href="#二、Quartz分布式定时任务系统的基本实现原理" class="headerlink" title="二、Quartz分布式定时任务系统的基本实现原理"></a>二、Quartz分布式定时任务系统的基本实现原理</h1><blockquote>
+<p>上面提到的定时任务的解决方案都是在单机下执行的，适用于比较简单的定时任务场景比如每天凌晨备份一次数据。如果要将最小堆或者时间轮应用在分布式环境下，还需要解决</p>
+</blockquote>
+<blockquote>
+<p><strong>任务分配</strong>：将任务分配到不同的节点进行处理。</p>
+</blockquote>
+<blockquote>
+<p><strong>节点协调</strong>：确保各节点协同工作，不重复调度任务。</p>
+</blockquote>
+<blockquote>
+<p><strong>任务持久化和恢复</strong>：确保任务数据不会因为节点故障而丢失。</p>
+</blockquote>
+<blockquote>
+</blockquote>
+<blockquote>
+<p>如需要一些高级特性比如支持任务在分布式场景下的分片和高可用的话，我们就需要用到分布式任务调度框架了，比如著名的Elastic-Job并未使用时间轮算法</p>
+</blockquote>
+<p>XXX Job的任务调度功能一般都是基于quartz来开发的，并且Spring也集成了Quartz模块。 下面主要介绍Quartz的基本原理</p>
+<p>GItHub: <a target="_blank" rel="noopener" href="https://github.com/quartz-scheduler/quartz">https://github.com/quartz-scheduler/quartz</a></p>
+<h2 id="2-1-Quartz的核心组件"><a href="#2-1-Quartz的核心组件" class="headerlink" title="2.1 Quartz的核心组件"></a><strong>2.1 Quartz的核心组件</strong></h2><p><img src="https://cooper.didichuxing.com/uploader/f/vxmAkeHL4ISZRdo1.png?accessToken=eyJhbGciOiJIUzI1NiIsImtpZCI6ImRlZmF1bHQiLCJ0eXAiOiJKV1QifQ.eyJleHAiOjE3MzEwNzc5ODMsImZpbGVHVUlEIjoieGQwQmpJdFFSWWtvWnFwdiIsImlhdCI6MTczMTA3NzM4MywiaXNzIjoidXBsb2FkZXJfYWNjZXNzX3Jlc291cmNlIiwidXNlcklkIjoxMDAwMDAyODY0MH0.fJyBLlFIktnCpHrJvdDpmQ8u4UraIQ4QoHyJvmSJrwg" alt="img"></p>
+<p><strong>Job任务</strong>：表示被调度的任务</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">public interface Job &#123;</span><br><span class="line">    void execute(JobExecutionContext context)</span><br><span class="line">        throws JobExecutionException;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p><strong>Trigger触发器</strong>：Trigger 定义调度时间的元素，即按照什么时间规则去执行任务。一个Job可以被多个Trigger关联，但是一个Trigger 只能关联一个Job</p>
+<p>支持的Trigger类型：SimpleTrigger、CronTrigger、DailyTimeIntervalTrigger、CalendarIntervalTrigger</p>
+<p><strong>Scheduler****调度器</strong> ：工厂类创建Scheduler，根据触发器定义的时间规则调度任务</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">// 创建调度器</span><br><span class="line">Scheduler scheduler= StdSchedulerFactory.getDefaultScheduler();</span><br><span class="line">...</span><br><span class="line">// 将作业和触发器注册到调度器中</span><br><span class="line">scheduler.scheduleJob(job, trigger1);</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="2-2-Quartz的核心表"><a href="#2-2-Quartz的核心表" class="headerlink" title="2.2 Quartz的核心表"></a>2.2 Quartz的核心表</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">qrtz_blob_triggers : 以Blob 类型存储的触发器。</span><br><span class="line">qrtz_calendars：存放日历信息， quartz可配置一个日历来指定一个时间范围。</span><br><span class="line">qrtz_cron_triggers：存放cron类型的触发器。</span><br><span class="line">qrtz_fired_triggers：存放已触发的触发器。</span><br><span class="line">qrtz_job_details：存放一个jobDetail信息。</span><br><span class="line">qrtz_job_listeners：job**监听器**。</span><br><span class="line">qrtz_locks： 存储程序的悲观锁的信息(假如使用了悲观锁)。</span><br><span class="line">qrtz_paused_trigger_graps：存放暂停掉的触发器。</span><br><span class="line">qrtz_scheduler_state：调度器状态。</span><br><span class="line">qrtz_simple_triggers：简单触发器的信息。</span><br><span class="line">qrtz_trigger_listeners：触发器监听器。</span><br><span class="line">qrtz_triggers：触发器的基本信息</span><br></pre></td></tr></table></figure>
+
+
+
+<p>quartz通过quartz.properties配置文件，实现数据的存储和持久化</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"># 设置数据库驱动</span><br><span class="line">org.quartz.jobStore.driverDelegateClass = org.quartz.impl.jdbcjobstore.StdJDBCDelegate</span><br><span class="line"># 设置数据库连接URL</span><br><span class="line">org.quartz.jobStore.dataSource = myDS</span><br><span class="line">org.quartz.dataSource.myDS.driver = com.mysql.jdbc.Driver</span><br><span class="line">org.quartz.dataSource.myDS.URL = jdbc:mysql://localhost:3306/quartzdb</span><br><span class="line">org.quartz.dataSource.myDS.user = root</span><br><span class="line">org.quartz.dataSource.myDS.password = root</span><br><span class="line">org.quartz.dataSource.myDS.maxConnections = 5</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+<h2 id="2-3-Quartz的核心运行机制"><a href="#2-3-Quartz的核心运行机制" class="headerlink" title="2.3 Quartz的核心运行机制"></a><strong>2.3 Quartz的核心运行机制</strong></h2><p><img src="https://cooper.didichuxing.com/uploader/f/PgvR1NlWxPnbNLA7.png?accessToken=eyJhbGciOiJIUzI1NiIsImtpZCI6ImRlZmF1bHQiLCJ0eXAiOiJKV1QifQ.eyJleHAiOjE3MzEwNzc5ODMsImZpbGVHVUlEIjoieGQwQmpJdFFSWWtvWnFwdiIsImlhdCI6MTczMTA3NzM4MywiaXNzIjoidXBsb2FkZXJfYWNjZXNzX3Jlc291cmNlIiwidXNlcklkIjoxMDAwMDAyODY0MH0.fJyBLlFIktnCpHrJvdDpmQ8u4UraIQ4QoHyJvmSJrwg" alt="img"></p>
+<p>从上图可以看到，Quartz的核心流程大致分为三个阶段:</p>
+<table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>描述</th>
+<th>详细描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>阶段一</td>
+<td>获取调度实例阶段</td>
+<td>通过getScheduler方法根据配置文件加载配置和初始化，创建线程池 ThreadPool(默认是SimpleThreadPool，用来执行Quartz调度任务)，创建调度器 QuartzScheduler，创建调度线程 QuartzSchedulerThread，并将调度线程初始状态设置为暂停状态</td>
+</tr>
+<tr>
+<td>阶段二</td>
+<td>绑定JobDetail和Trigger阶段</td>
+<td>使用调度器将 JobDetail 和 Trigger 绑定在一起，并注册到调度器中 并持久化JobDetail和trigger 比如每一次编辑Cron表达式进行发布后，需要对 Trigger 进行更新，并触发一次持久化操作</td>
+</tr>
+<tr>
+<td>阶段三</td>
+<td>启动调度器阶段</td>
+<td>参考下图</td>
+</tr>
+</tbody></table>
+<p>阶段二核心代码：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">StdScheduler.scheduleJob</span><br><span class="line">   </span><br><span class="line">public Date scheduleJob(JobDetail jobDetail, Trigger trigger)</span><br><span class="line">        throws SchedulerException &#123;</span><br><span class="line">     		//这里实际调用的是QuartzScheduler</span><br><span class="line">        return sched.scheduleJob(jobDetail, trigger);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">public Date scheduleJob(JobDetail jobDetail,</span><br><span class="line">            Trigger trigger) throws SchedulerException &#123;</span><br><span class="line">			//...省略...</span><br><span class="line">        //持久化JobDetail和trigger</span><br><span class="line">        resources.getJobStore().storeJobAndTrigger(jobDetail, trig);</span><br><span class="line">      	//通知scheduler监听者</span><br><span class="line">        notifySchedulerListenersJobAdded(jobDetail);</span><br><span class="line">        notifySchedulerThread(trigger.getNextFireTime().getTime());</span><br><span class="line">        notifySchedulerListenersSchduled(trigger);</span><br><span class="line">        return ft;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>阶段三流程：</p>
+<ol>
+<li><code>Scheduler</code>会调用<code>QuartzScheduler</code>的<code>Start()</code>方法，这时候会把调度线程从暂停切为启动状态</li>
+<li>调用notifySchedulerListenersStarted，调度器监听器收到通知后，通知<code>QuartzSchedulerThread</code>正式执行</li>
+<li><code>QuartzSchedulerThread</code>会从<code>SimpleThreadPool</code>查看下有多少可用工作线程，然后找<code>JobStore</code>去拿下一批符合条件的待触发的<code>Trigger</code>任务列表，包装成<code>TriggerFiredBundle</code>。通过<code>JobRunShellFactory</code>创建<code>FiredTriggerBundle</code>的执行线程实例<code>JobRunShell</code>，</li>
+<li>然后把<code>JobRunShell</code>实例交给<code>SimpleThreadPool</code>的工作线程去执行。<code>SimpleThreadPool</code>会从可用线程队列拿出对应数量的线程，去调用<code>JobRunShell</code>的<code>run()</code>方法，此时会执行任务类的<code>execute</code>方法 : <code>job.execute(JobExecutionContext context)</code>。</li>
+</ol>
+<p><strong>思考：Trigger数据的写入是否和前面介绍的也是渐进式的呢？</strong></p>
+<blockquote>
+<p>每当任务调度器需要知道下一个触发时间时，它会基于当前时间动态地计算下一个触发时间。这意味着 Quartz 只会在需要时计算并缓存下一个触发时间，而不是提前计算和存储所有时间点。</p>
+</blockquote>
+<blockquote>
+<p>Quartz 会将 <code>Trigger</code> 的定义和状态信息存储到数据库中，这包括 Cron 表达式本身和触发器的元数据（例如下一个触发时间）。</p>
+</blockquote>
+<p><strong>思考：****Quartz集群如何保证高并发下不重复跑？</strong></p>
+<blockquote>
+<p>Quartz节点之间是否存在分布式锁去控制？答案是肯定的。</p>
+</blockquote>
+<blockquote>
+<p>Quartz是通过数据库去作为分布式锁来控制多进程并发问题，Quartz加锁的地方很多，Quartz是使用悲观锁的方式进行加锁，让在各个instance操作Trigger任务期间串行</p>
+</blockquote>
+<p><strong>锁的类型</strong>：</p>
+<ul>
+<li><strong>TRIGGER_ACCESS</strong>：用于控制触发器的调度访问，确保只有一个节点可以调度某个触发器。</li>
+<li><strong>JOB_ACCESS</strong>：用于控制任务的执行访问，确保任务执行期间的原子性。</li>
+<li><strong>CALENDAR_ACCESS</strong>：用于控制日历的访问，确保日历操作的原子性。</li>
+<li><strong>STATE_ACCESS</strong>：用于控制调度器状态的访问，确保调度器状态变更的原子性。</li>
+<li><strong>MISFIRE_ACCESS</strong>：用于控制错过触发时间的任务，确保错过的任务能正确处理。</li>
+</ul>
+<p>加锁对任务执行的影响</p>
+<p>虽然加锁是为了确保任务调度的原子性和一致性，但 Quartz 通过多种机制尽量减少锁对其他任务执行的影响</p>
+<ol>
+<li><strong>细粒度的锁</strong>：Quartz 使用多种锁类型，每种锁仅用于特定的操作，避免了全局锁的使用。这种细粒度的锁机制确保了大部分操作可以并行进行，而不互相阻塞。</li>
+<li><strong>短时间持有锁</strong>：Quartz 设计上尽量减少持有锁的时间。获取锁的操作尽可能快地完成，以便尽快释放锁，减少对其他操作的影响。</li>
+<li><strong>线程池并行执行</strong>：Quartz 使用线程池并行执行任务。即使某个任务获取锁进行调度，其他任务仍然可以通过线程池并行执行，不会因为某个锁而阻塞所有任务的执行。</li>
+</ol>
+<p><strong>思考：****Quartz集群如何保证高并发下不漏跑？</strong></p>
+<p>定时任务很容易出现漏跑的情况，如</p>
+<ul>
+<li>服务重启，没能及时执行任务，就会misfire</li>
+<li>工作线程去运行优先级更高的任务，就会misfire</li>
+<li>任务的上一次运行还没结束，下一次触发时间到达，就会misfire</li>
+</ul>
+<p>Misfire的大致流程：</p>
+<p><img src="https://cooper.didichuxing.com/uploader/f/xt0ub75jHJjqnewc.png?accessToken=eyJhbGciOiJIUzI1NiIsImtpZCI6ImRlZmF1bHQiLCJ0eXAiOiJKV1QifQ.eyJleHAiOjE3MzEwNzc5ODMsImZpbGVHVUlEIjoieGQwQmpJdFFSWWtvWnFwdiIsImlhdCI6MTczMTA3NzM4MywiaXNzIjoidXBsb2FkZXJfYWNjZXNzX3Jlc291cmNlIiwidXNlcklkIjoxMDAwMDAyODY0MH0.fJyBLlFIktnCpHrJvdDpmQ8u4UraIQ4QoHyJvmSJrwg" alt="img"></p>
+<p>MisfileHandler通过JobStoreSupport去查询有没有misfire的任务，查询条件是当前状态是waiting，下一次trigger时间&lt; 当前时间-misfire预设阈值(默认1分钟)</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">int misfireCount = (getDoubleCheckLockMisfireHandler()) ?</span><br><span class="line">                   getDelegate().countMisfiredTriggersInState(</span><br><span class="line">                       conn, STATE_WAITING, getMisfireTime()) : </span><br><span class="line">                   Integer.MAX_VALUE;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    String COUNT_MISFIRED_TRIGGERS_IN_STATE = &quot;SELECT COUNT(&quot;</span><br><span class="line">           + COL_TRIGGER_NAME + &quot;) FROM &quot;</span><br><span class="line">           + TABLE_PREFIX_SUBST + TABLE_TRIGGERS + &quot; WHERE &quot;</span><br><span class="line">           + COL_SCHEDULER_NAME + &quot; = &quot; + SCHED_NAME_SUBST + &quot; AND NOT (&quot;</span><br><span class="line">           + COL_MISFIRE_INSTRUCTION + &quot; = &quot; + Trigger.MISFIRE_INSTRUCTION_IGNORE_MISFIRE_POLICY + &quot;) AND &quot; </span><br><span class="line">           + COL_NEXT_FIRE_TIME + &quot; &lt; ? &quot; </span><br><span class="line">           + &quot;AND &quot; + COL_TRIGGER_STATE + &quot; = ?&quot;; </span><br></pre></td></tr></table></figure>
+
+<h1 id="三、DCron实现原理"><a href="#三、DCron实现原理" class="headerlink" title="三、DCron实现原理"></a>三、DCron实现原理</h1><p>GitHub: <a target="_blank" rel="noopener" href="https://git.xiaojukeji.com/gulfstream/dcron.git">https://git.xiaojukeji.com/gulfstream/dcron.git</a></p>
+<p>采用开源定时任务框架 <a target="_blank" rel="noopener" href="https://github.com/robfig/cron%EF%BC%8C">https://github.com/robfig/cron，</a> 在此基础上进行了封装。</p>
+<h2 id="3-1-模式架构"><a href="#3-1-模式架构" class="headerlink" title="3.1 模式架构"></a>3.1 模式架构</h2><p><strong>领域模型</strong></p>
+<p><img src="https://cooper.didichuxing.com/uploader/f/3pYjbVbDeqiZAa7T.png?accessToken=eyJhbGciOiJIUzI1NiIsImtpZCI6ImRlZmF1bHQiLCJ0eXAiOiJKV1QifQ.eyJleHAiOjE3MzEwNzc5ODMsImZpbGVHVUlEIjoieGQwQmpJdFFSWWtvWnFwdiIsImlhdCI6MTczMTA3NzM4MywiaXNzIjoidXBsb2FkZXJfYWNjZXNzX3Jlc291cmNlIiwidXNlcklkIjoxMDAwMDAyODY0MH0.fJyBLlFIktnCpHrJvdDpmQ8u4UraIQ4QoHyJvmSJrwg" alt="img"></p>
+<p><strong>逻辑架构</strong></p>
+<p>dcron分布式服务采用leader和follower的集群策略，leader节点负责调度执行派发任务，follower节点用于同步任务状态和失效备援，这里阐述下leader派发给agent执行任务的逻辑</p>
+<p><img src="https://cooper.didichuxing.com/uploader/f/SfELZjY9jo3yHxaC.png?accessToken=eyJhbGciOiJIUzI1NiIsImtpZCI6ImRlZmF1bHQiLCJ0eXAiOiJKV1QifQ.eyJleHAiOjE3MzEwNzc5ODMsImZpbGVHVUlEIjoieGQwQmpJdFFSWWtvWnFwdiIsImlhdCI6MTczMTA3NzM4MywiaXNzIjoidXBsb2FkZXJfYWNjZXNzX3Jlc291cmNlIiwidXNlcklkIjoxMDAwMDAyODY0MH0.fJyBLlFIktnCpHrJvdDpmQ8u4UraIQ4QoHyJvmSJrwg" alt="img"></p>
+<p><strong>协议设计</strong></p>
+<p>agent模式采用的是标准的grpc通信协议，业务方执行的脚本定时任务都是通过dcron的服务节点grpc调用agent节点来定时执行</p>
+<p>agent接收到调用的请求后会非阻塞的方式返回给dcron的服务端，然后执行脚本的定时任务</p>
+<p><img src="https://cooper.didichuxing.com/uploader/f/ycXxbJLzejaAlVsX.png?accessToken=eyJhbGciOiJIUzI1NiIsImtpZCI6ImRlZmF1bHQiLCJ0eXAiOiJKV1QifQ.eyJleHAiOjE3MzEwNzc5ODMsImZpbGVHVUlEIjoieGQwQmpJdFFSWWtvWnFwdiIsImlhdCI6MTczMTA3NzM4MywiaXNzIjoidXBsb2FkZXJfYWNjZXNzX3Jlc291cmNlIiwidXNlcklkIjoxMDAwMDAyODY0MH0.fJyBLlFIktnCpHrJvdDpmQ8u4UraIQ4QoHyJvmSJrwg" alt="img"></p>
+<h2 id="3-2-调度"><a href="#3-2-调度" class="headerlink" title="3.2 调度"></a>3.2 调度</h2><p>调度的主要逻辑：<a target="_blank" rel="noopener" href="https://git.xiaojukeji.com/gulfstream/dcron/blob/master/dcron/sharding.go">https://git.xiaojukeji.com/gulfstream/dcron/blob/master/dcron/sharding.go</a></p>
+<p>主要利用zk的选主逻辑，同时也会进行主节点计算节点编号、感知节点变更、通知从节点拉取任务等</p>
+<h2 id="3-2-执行"><a href="#3-2-执行" class="headerlink" title="3.2 执行"></a>3.2 执行</h2><p>利用robfig&#x2F;cron进行定时执行，任务会持久化在内存中，任务的基础信息也会放到localcache中。任务类型上也有shell任务、agent和http任务，执行模式也有单机和广播两种，不支持Map和MapReduce执行。</p>
+<p><img src="https://cooper.didichuxing.com/uploader/f/6YPzNtmIz2qNMkm4.png?accessToken=eyJhbGciOiJIUzI1NiIsImtpZCI6ImRlZmF1bHQiLCJ0eXAiOiJKV1QifQ.eyJleHAiOjE3MzEwNzc5ODMsImZpbGVHVUlEIjoieGQwQmpJdFFSWWtvWnFwdiIsImlhdCI6MTczMTA3NzM4MywiaXNzIjoidXBsb2FkZXJfYWNjZXNzX3Jlc291cmNlIiwidXNlcklkIjoxMDAwMDAyODY0MH0.fJyBLlFIktnCpHrJvdDpmQ8u4UraIQ4QoHyJvmSJrwg" alt="img"></p>
+<h2 id="3-3-主备"><a href="#3-3-主备" class="headerlink" title="3.3 主备"></a>3.3 主备</h2><p>在上线或者机器挂掉的情况下，如果刚好碰见这台机器任务要运行的情况，那这一批任务都会漏执行。</p>
+<p>为了减少这种情况，采用了两两互为主备的形式，两个节点会互相backup，通过抢锁保障只有一个机器会执行。当有一个机器在上线或挂掉时，任务就都被转移到另外一个机器上了。</p>
+<p><img src="https://cooper.didichuxing.com/uploader/f/gwse19LVFJ38S48W.png?accessToken=eyJhbGciOiJIUzI1NiIsImtpZCI6ImRlZmF1bHQiLCJ0eXAiOiJKV1QifQ.eyJleHAiOjE3MzEwNzc5ODMsImZpbGVHVUlEIjoieGQwQmpJdFFSWWtvWnFwdiIsImlhdCI6MTczMTA3NzM4MywiaXNzIjoidXBsb2FkZXJfYWNjZXNzX3Jlc291cmNlIiwidXNlcklkIjoxMDAwMDAyODY0MH0.fJyBLlFIktnCpHrJvdDpmQ8u4UraIQ4QoHyJvmSJrwg" alt="img"></p>
+<h1 id="参考文档"><a href="#参考文档" class="headerlink" title="参考文档"></a>参考文档</h1><p>[1] <a target="_blank" rel="noopener" href="https://blog.csdn.net/Peerless__/article/details/120638890">https://blog.csdn.net/Peerless__/article/details/120638890</a></p>
+<p>[2] <a target="_blank" rel="noopener" href="https://blog.csdn.net/Peerless__/article/details/120675515">https://blog.csdn.net/Peerless__/article/details/120675515</a></p>
+<p>[3] <a target="_blank" rel="noopener" href="https://javaguide.cn/system-design/schedule-task.html#spring-task">https://javaguide.cn/system-design/schedule-task.html#spring-task</a></p>
+<p>[4] <a target="_blank" rel="noopener" href="https://juejin.cn/post/7056704703559630856">https://juejin.cn/post/7056704703559630856</a></p>
+<p>[5] <a target="_blank" rel="noopener" href="https://www.cnblogs.com/evan-liang/p/14939182.html">https://www.cnblogs.com/evan-liang/p/14939182.html</a></p>
+<p>[6] <a target="_blank" rel="noopener" href="http://wiki.intra.xiaojukeji.com/pages/viewpage.action?pageId=841974384">http://wiki.intra.xiaojukeji.com/pages/viewpage.action?pageId=841974384</a></p>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a href="https://yangshaobei.com">YangYong</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://yangshaobei.com/schedule/">https://yangshaobei.com/schedule/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来自 <a href="https://yangshaobei.com" target="_blank">一叶落而知天下秋</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1%E5%8E%9F%E7%90%86/">定时任务原理</a></div><div class="post_share"><div class="social-share" data-image="https://s2.loli.net/2023/11/03/rth6zKLAEqsBUMa.jpg" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><div class="post-reward"><div class="reward-button"><i class="fas fa-qrcode"></i>赞助</div><div class="reward-main"><ul class="reward-all"><li class="reward-item"><a href="/img/wechat.jpeg" target="_blank"><img class="post-qr-code-img" src="/img/wechat.jpeg" alt="WeChat微信打赏"/></a><div class="post-qr-code-desc">WeChat微信打赏</div></li><li class="reward-item"><a href="/img/alipay.jpeg" target="_blank"><img class="post-qr-code-img" src="/img/alipay.jpeg" alt="AliPay支付宝打赏"/></a><div class="post-qr-code-desc">AliPay支付宝打赏</div></li></ul></div></div><nav class="pagination-post" id="pagination"><div class="prev-post pull-left"><a href="/log/" title="MySQL日志介绍"><div class="cover" style="background: var(--default-bg-color)"></div><div class="pagination-info"><div class="label">上一篇</div><div class="prev_info">MySQL日志介绍</div></div></a></div><div class="next-post pull-right"><a href="/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1/" title="分布式事务"><div class="cover" style="background: var(--default-bg-color)"></div><div class="pagination-info"><div class="label">下一篇</div><div class="next_info">分布式事务</div></div></a></div></nav></div><div class="aside-content" id="aside-content"><div class="card-widget card-info"><div class="is-center"><div class="avatar-img"><img src="https://s2.loli.net/2023/11/03/rth6zKLAEqsBUMa.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info__name">YangYong</div><div class="author-info__description"></div></div><div class="card-info-data site-data is-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">8</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">5</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">5</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/yangyongwff"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons is-center"><a class="social-icon" href="https://github.com/yangyongwff" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:2421506992@qq.com" target="_blank" title="Email"><i class="fas fa-envelope" style="color: #4a7dbe;"></i></a><a class="social-icon" href="https://www.google.com.hk/?pli=1" target="_blank" title="Google"><i class="fab fa-google" style="color: #55AF7B;"></i></a><a class="social-icon" href="https://segmentfault.com/u/yangyongwff" target="_blank" title="SF"><i class="fab fa-stack-overflow" style="color: #f6ac23;"></i></a></div></div><div class="card-widget card-announcement"><div class="xpand" style="height:200px;"><canvas class="illo" width="800" height="800" style="max-width: 200px; max-height: 200px; touch-action: none; width: 640px; height: 640px;"></canvas></div><script src="https://fastly.jsdelivr.net/gh/xiaopengand/blogCdn@latest/xzxr/twopeople1.js"></script><script src="https://fastly.jsdelivr.net/gh/xiaopengand/blogCdn@latest/xzxr/zdog.dist.js"></script><script id="rendered-js" src="https://fastly.jsdelivr.net/gh/xiaopengand/blogCdn@latest/xzxr/twopeople.js"></script><style>.card-widget.card-announcement {
+  margin: 0;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+canvas {
+  display: block;
+  margin: 0 auto;
+  cursor: move;
+}</style><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>公告</span></div><div class="announcement_content"><strong>当你选择了一种语言，意味着你还选择了一组技术、一个社区。</strong><br />  <strong> <a href="https://yangshaobei.com/%E4%B8%AA%E4%BA%BA%E7%AE%80%E4%BB%8B/" title="超链接title"> ➡ About Me 传送门️ </a> </strong></div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E4%B8%80%E3%80%81%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1%E7%B3%BB%E7%BB%9F%E7%9A%84%E5%AE%9E%E7%8E%B0%E6%96%B9%E5%BC%8F"><span class="toc-number">1.</span> <span class="toc-text">一、定时任务系统的实现方式</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#1-1-%E6%9C%80%E5%B0%8F%E5%A0%86"><span class="toc-number">1.1.</span> <span class="toc-text">1.1 最小堆</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#1-2-%E6%97%B6%E9%97%B4%E8%BD%AE"><span class="toc-number">1.2.</span> <span class="toc-text">1.2 时间轮</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E4%BA%8C%E3%80%81Quartz%E5%88%86%E5%B8%83%E5%BC%8F%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1%E7%B3%BB%E7%BB%9F%E7%9A%84%E5%9F%BA%E6%9C%AC%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86"><span class="toc-number">2.</span> <span class="toc-text">二、Quartz分布式定时任务系统的基本实现原理</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#2-1-Quartz%E7%9A%84%E6%A0%B8%E5%BF%83%E7%BB%84%E4%BB%B6"><span class="toc-number">2.1.</span> <span class="toc-text">2.1 Quartz的核心组件</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-2-Quartz%E7%9A%84%E6%A0%B8%E5%BF%83%E8%A1%A8"><span class="toc-number">2.2.</span> <span class="toc-text">2.2 Quartz的核心表</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-3-Quartz%E7%9A%84%E6%A0%B8%E5%BF%83%E8%BF%90%E8%A1%8C%E6%9C%BA%E5%88%B6"><span class="toc-number">2.3.</span> <span class="toc-text">2.3 Quartz的核心运行机制</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E4%B8%89%E3%80%81DCron%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86"><span class="toc-number">3.</span> <span class="toc-text">三、DCron实现原理</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#3-1-%E6%A8%A1%E5%BC%8F%E6%9E%B6%E6%9E%84"><span class="toc-number">3.1.</span> <span class="toc-text">3.1 模式架构</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-2-%E8%B0%83%E5%BA%A6"><span class="toc-number">3.2.</span> <span class="toc-text">3.2 调度</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-2-%E6%89%A7%E8%A1%8C"><span class="toc-number">3.3.</span> <span class="toc-text">3.2 执行</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-3-%E4%B8%BB%E5%A4%87"><span class="toc-number">3.4.</span> <span class="toc-text">3.3 主备</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%8F%82%E8%80%83%E6%96%87%E6%A1%A3"><span class="toc-number">4.</span> <span class="toc-text">参考文档</span></a></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/log/" title="MySQL日志介绍">MySQL日志介绍</a><time datetime="2024-06-01T15:20:31.000Z" title="发表于 2024-06-01 23:20:31">2024-06-01</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/schedule/" title="定时任务系统原理与实现分析">定时任务系统原理与实现分析</a><time datetime="2024-03-20T12:37:51.000Z" title="发表于 2024-03-20 20:37:51">2024-03-20</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1/" title="分布式事务">分布式事务</a><time datetime="2024-01-27T14:19:05.000Z" title="发表于 2024-01-27 22:19:05">2024-01-27</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/disk-structures/" title="MySQL存储架构">MySQL存储架构</a><time datetime="2024-01-12T02:00:00.000Z" title="发表于 2024-01-12 10:00:00">2024-01-12</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2pc/" title="两阶段提交协议">两阶段提交协议</a><time datetime="2023-12-26T01:37:51.000Z" title="发表于 2023-12-26 09:37:51">2023-12-26</time></div></div></div></div></div></div></main><footer id="footer"><div id="footer-wrap"><div class="copyright">&copy;2020 - 2024 By YangYong. All Rights Reserved</div><!--if theme.footer.copyright--><!--  .framework-info--><!--    span= _p('footer.framework') + ' '--><!--    a(href='https://hexo.io')= 'Hexo'--><!--    span.footer-separator |--><!--    span= _p('footer.theme') + ' '--><!--    a(href='https://github.com/jerryc127/hexo-theme-butterfly')= 'Butterfly'--><div class="framework-info"><span>北京市海淀区</span><!--a(href='https://j.map.baidu.com/7d/zdc')= '北京市海淀区'--><!--span= _p('footer.email') + ': 2421506992@qq.com'--><span class="footer-separator">|</span><span>电话: 15520792281</span><!--a(href='https://github.com/jerryc127/hexo-theme-butterfly')= '15520792281'--></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="浅色和深色模式转换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox/fancybox.umd.min.js"></script><div class="js-pjax"></div><div class="aplayer no-destroy" data-id="1982066521" data-server="netease" data-type="playlist" data-fixed="true" data-autoplay="false" data-lrcType="-1"> </div><canvas class="fireworks" mobile="false"></canvas><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/dist/fireworks.min.js"></script><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aplayer/dist/APlayer.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/aplayer/dist/APlayer.min.js"></script><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/metingjs/dist/Meting.min.js"></script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script></div><script src="/live2dw/lib/L2Dwidget.min.js?094cbace49a39548bed64abff5988b05"></script><script>L2Dwidget.init({"pluginModelPath":"assets/","model":{"jsonPath":"/live2dw/assets/miku.model.json"},"display":{"position":"left","width":150,"height":300},"mobile":{"show":false},"react":{"opacity":0.8},"log":false,"pluginJsPath":"lib/","pluginRootPath":"live2dw/","tagMode":false});</script></body></html>
